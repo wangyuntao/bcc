@@ -30,6 +30,7 @@ APPS = \
 	drsnoop \
 	execsnoop \
 	exitsnoop \
+	hello \
 	filelife \
 	filetop \
 	fsdist \
