@@ -17,3 +17,6 @@ examples/cgroupid/cgroupid
 scripts/docker/output/
 /output/
 .dir-locals.el
+GPATH
+GRTAGS
+GTAGS
