@@ -17,17 +17,25 @@ struct {
 	__uint(value_size, sizeof(__u32));
 } events SEC(".maps");
 
+#define MAX_STACK 20
+
 SEC("tracepoint/sched/sched_process_exit")
 int sched_process_exit(void *ctx)
 {
-	void* buf[12];
-	long ret;
+	void *buf[MAX_STACK];
+	int max_len, ret, n, i = 0;
+
+	max_len = MAX_STACK * sizeof(buf[0]);
+	ret = bpf_get_stack(ctx, buf, max_len, 0);
+	n = ret / sizeof(buf[0]);
+
 	
-	struct task_struct *task;
-	task = (struct task_struct *)bpf_get_current_task();
-	
-	ret = bpf_get_task_stack(task, buf, 12, 0);
-	bpf_printk("HELLO %d.\n", ret);
+	if (i < n) {
+		bpf_printk("stack: %pS\n", buf[i++]);
+	}
+	if (i < n) {
+		bpf_printk("     : %pB\n", buf[i++]);
+	}
 	return 0;
 }
 
