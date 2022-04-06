@@ -22,19 +22,20 @@ struct {
 SEC("tracepoint/sched/sched_process_exit")
 int sched_process_exit(void *ctx)
 {
-	void *buf[MAX_STACK];
-	int max_len, ret, n, i = 0;
+	void *buf[MAX_STACK], *p;
+	int ret, i;
 
-	max_len = MAX_STACK * sizeof(buf[0]);
-	ret = bpf_get_stack(ctx, buf, max_len, 0);
-	n = ret / sizeof(buf[0]);
+	ret = bpf_get_stack(ctx, buf, sizeof(buf), 0);
 
-	
-	if (i < n) {
-		bpf_printk("stack: %pS\n", buf[i++]);
-	}
-	if (i < n) {
-		bpf_printk("     : %pB\n", buf[i++]);
+	for (i = 0; i < MAX_STACK; i++) {
+		p = buf[i];
+		if (((u64)p) == 0) {
+			break;
+		}
+		if (i == 0) {
+			bpf_printk("stack: %d", ret);
+		}
+		bpf_printk("\t%pB", p);
 	}
 	return 0;
 }
