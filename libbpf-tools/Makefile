@@ -56,6 +56,7 @@ APPS = \
 	statsnoop \
 	syscount \
 	tcpconnect \
+	tcpdrop \
 	tcpconnlat \
 	tcprtt \
 	tcpsynbl \
