@@ -21,6 +21,11 @@ static struct env {
 	bool verbose;
 } env;
 
+struct ctx {
+	int stackmap;
+	struct ksyms *ksyms;
+};
+
 static volatile sig_atomic_t exiting = 0;
 
 const char *argp_program_version = "tcpdrop 0.1";
@@ -79,16 +84,11 @@ static void sig_int(int signo)
 	exiting = 1;
 }
 
-struct ctx {
-	int stackmap;
-	struct ksyms *ksyms;
-};
-
 static char *symname(struct ksyms *ksyms, __u64 pc, char *buf, size_t n)
 {
 	const struct ksym *ksym = ksyms__map_addr(ksyms, pc);
 	if (!ksym)
-		return "Unknown";
+		return "unknown";
 	snprintf(buf, n, "%s+0x%lx", ksym->name, pc - ksym->addr);
 	return buf;
 }
@@ -158,12 +158,12 @@ static void handle_lost_events(void *ctx, int cpu, __u64 lost_cnt)
 
 int main(int argc, char **argv)
 {
-	LIBBPF_OPTS(bpf_object_open_opts, open_opts);
 	static const struct argp argp = {
 		.options = opts,
 		.parser = parse_arg,
 		.doc = argp_program_doc,
 	};
+	LIBBPF_OPTS(bpf_object_open_opts, open_opts);
 	struct tcpdrop_bpf *obj;
 	struct perf_buffer *pb = NULL;
 	struct ctx ctx;

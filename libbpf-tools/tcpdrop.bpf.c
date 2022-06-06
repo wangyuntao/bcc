@@ -12,11 +12,9 @@
 
 struct {
 	__uint(type, BPF_MAP_TYPE_PERF_EVENT_ARRAY);
-	__uint(key_size, sizeof(u32));
-	__uint(value_size, sizeof(u32));
+	__uint(key_size, sizeof(__u32));
+	__uint(value_size, sizeof(__u32));
 } events SEC(".maps");
-
-typedef __u64 stack_trace_t[127];
 
 struct {
 	__uint(type, BPF_MAP_TYPE_STACK_TRACE);
