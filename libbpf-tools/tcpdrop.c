@@ -95,11 +95,12 @@ static void handle_event(void *ctx, int cpu, void *data, __u32 data_sz)
 		struct in6_addr x6;
 	} s, d;
 	
-	char src[INET6_ADDRSTRLEN];
-	char dst[INET6_ADDRSTRLEN];
+	char src[INET6_ADDRSTRLEN + 6];
+	char dst[INET6_ADDRSTRLEN + 6];
 
 	__u64 ips[127];
 	int i;
+
 
 	if (e->af == AF_INET) {
 		s.x4.s_addr = e->saddr_v4;
@@ -111,15 +112,21 @@ static void handle_event(void *ctx, int cpu, void *data, __u32 data_sz)
 		fprintf(stderr, "broken event: event->af=%d", e->af);
 		return;
 	}
+
+	// SADDR:SPORT
+	inet_ntop(e->af, &s, src, sizeof(src));
+	sprintf(src+strlen(src), ":%d", ntohs(e->sport));
+
+	// DADDR:DPORT
+	inet_ntop(e->af, &d, dst, sizeof(dst)),
+	sprintf(dst+strlen(dst), ":%d", ntohs(e->dport));
 	
-	printf("%-8s %-7d %-2d %-16s:%-6d > %-16s:%-6d %s (%s)\n",
+	printf("%-8s %-7d %-2d %-20s > %-20s %s (%s)\n",
 	       "00:00:00",
 	       e->pid,
 	       e->af == AF_INET ? 4 : 6,
-	       inet_ntop(e->af, &s, src, sizeof(src)),
-	       ntohs(e->sport),
-	       inet_ntop(e->af, &d, dst, sizeof(dst)),
-	       ntohs(e->dport),
+	       src,
+	       dst,
 	       "NULL", "NULL");
 	
 	if (bpf_map_lookup_elem(c->stackmap, &e->stackid, &ips)) {
