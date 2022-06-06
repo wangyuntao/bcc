@@ -84,24 +84,41 @@ struct ctx {
 	struct ksyms *ksyms;
 };
 
+static char *symname(struct ksyms *ksyms, __u64 pc, char *buf, size_t n)
+{
+	const struct ksym *ksym = ksyms__map_addr(ksyms, pc);
+	if (!ksym)
+		return "Unknown";
+	snprintf(buf, n, "%s+0x%lx", ksym->name, pc - ksym->addr);
+	return buf;
+}
+
 static void handle_event(void *ctx, int cpu, void *data, __u32 data_sz)
 {
 	const struct ctx *c = ctx;
 	const struct event *e = data;
-	const struct ksym *ksym;
+
+	struct tm *tm;
+	char ts[32];
+	time_t t;
 
 	union {
 		struct in_addr  x4;
 		struct in6_addr x6;
 	} s, d;
-	
 	char src[INET6_ADDRSTRLEN + 6];
 	char dst[INET6_ADDRSTRLEN + 6];
 
-	__u64 ips[127];
+	stack_trace_t st;
+	char buf[40];
 	int i;
 
+	// time
+	time(&t);
+	tm = localtime(&t);
+	strftime(ts, sizeof(ts), "%H:%M:%S", tm);
 
+	// saddr:sport > daddr:dport
 	if (e->af == AF_INET) {
 		s.x4.s_addr = e->saddr_v4;
 		d.x4.s_addr = e->daddr_v4;
@@ -113,30 +130,24 @@ static void handle_event(void *ctx, int cpu, void *data, __u32 data_sz)
 		return;
 	}
 
-	// SADDR:SPORT
 	inet_ntop(e->af, &s, src, sizeof(src));
 	sprintf(src+strlen(src), ":%d", ntohs(e->sport));
 
-	// DADDR:DPORT
 	inet_ntop(e->af, &d, dst, sizeof(dst)),
 	sprintf(dst+strlen(dst), ":%d", ntohs(e->dport));
-	
+
+	// output
 	printf("%-8s %-7d %-2d %-20s > %-20s %s (%s)\n",
-	       "00:00:00",
-	       e->pid,
-	       e->af == AF_INET ? 4 : 6,
-	       src,
-	       dst,
-	       "NULL", "NULL");
-	
-	if (bpf_map_lookup_elem(c->stackmap, &e->stackid, &ips)) {
-		printf("load ips\n");
+	       ts, e->pid, e->af == AF_INET ? 4 : 6, src, dst, "NULL", "NULL");
+
+	// stack trace
+	if (bpf_map_lookup_elem(c->stackmap, &e->stackid, &st)) {
+		fprintf(stderr, "failed to lookup stackid: %d\n", e->stackid);
 		return;
 	}
 
-	for (i = 0; i < 20 && ips[i]; i++) {
-		ksym = ksyms__map_addr(c->ksyms, ips[i]);
-		printf("   %llx - %s\n", ips[i], ksym ? ksym->name : "unknown");			
+	for (i = 0; i < ARRAY_SIZE(st) && st[i]; i++) {
+		printf("\t%s\n", symname(e->ksyms, st[i], buf, sizeof(buf)));
 	}
 }
 

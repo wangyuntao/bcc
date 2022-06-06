@@ -25,12 +25,12 @@ struct {
 	__type(value, stack_trace_t);
 } stackmap SEC(".maps");
 
-SEC("kprobe/tcp_drop_reason2.constprop.0")
-int BPF_KPROBE(tcp_drop_reason, struct sock *sk, struct sk_buff *skb)
+SEC("kprobe/tcp_drop")
+int BPF_KPROBE(tcp_drop, struct sock *sk, struct sk_buff *skb)
 {
 	struct event e = {};
 
-	e.pid = 0;
+	e.pid = bpf_get_current_pid_tgid() >> 32;
 	e.af = BPF_CORE_READ(sk, __sk_common.skc_family);
 	if (e.af == AF_INET) {
 		e.saddr_v4 = BPF_CORE_READ(sk, __sk_common.skc_rcv_saddr);

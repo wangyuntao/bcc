@@ -19,4 +19,6 @@ struct event {
 	__u32 stackid;
 };
 
+typedef __u64 stack_trace_t[PERF_MAX_STACK_DEPTH];
+
 #endif /* __TCPDROP_H */
